@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Portfolio AIZO - Giulia Camba</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            /* Font richiesto */
+            font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
+            overflow: hidden;
+        }
+
+        /* --- VIDEO SFONDO (COVER & ZOOM) --- */
+        .video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            mix-blend-mode: difference;
+            transition: all 1.2s cubic-bezier(0.86, 0, 0.07, 1), opacity 0.6s ease; 
+            opacity: 1;
+        }
+
+        .video-container.is-loading { opacity: 0; }
+
+        /* Modalità Split DESKTOP */
+        .video-container.split-mode {
+            left: 50%;
+            width: 50%;
+        }
+
+        /* LOGICA "COVER" PERFETTA + ZOOM 
+           Questo CSS forza il video a riempire sempre lo schermo, 
+           tagliando i bordi in eccesso. 
+           Lo scale(1.2) serve a spingere fuori il logo YouTube.
+        */
+        .video-container iframe {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100vw;
+            height: 100vh;
+            transform: translate(-50%, -50%) scale(1.2); /* Zoom per nascondere loghi */
+            pointer-events: none;
+            object-fit: cover;
+        }
+
+        /* Regole matematiche per mantenere il ratio 16:9 senza bande nere */
+        @media (min-aspect-ratio: 16/9) {
+            .video-container iframe {
+                height: 56.25vw; /* 16:9 based on width */
+                width: 100vw;
+            }
+        }
+        @media (max-aspect-ratio: 16/9) {
+            .video-container iframe {
+                width: 177.78vh; /* 16:9 based on height */
+                height: 100vh;
+            }
+        }
+
+        /* --- UI PRINCIPALE (HOME) --- */
+        .site-wrapper {
+            position: relative;
+            height: 100vh;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 10;
+            transition: opacity 0.5s ease;
+            mix-blend-mode: exclusion;
+        }
+
+        .is-hidden {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            visibility: hidden !important;
+        }
+
+        .site-wrapper a, .site-wrapper h1 {
+            pointer-events: auto;
+            color: white;
+            text-decoration: none;
+            text-transform: uppercase;
+            /* Sfocatura richiesta */
+            filter: blur(1px);
+        }
+
+        .site-header h1 {
+            font-size: 12pt;
+            font-weight: 400;
+            letter-spacing: 3px;
+            text-align: center;
+        }
+
+        /* --- MENU CENTRALE (MODIFICATO) --- */
+        .main-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            /* Distanza aumentata a 50pt (circa 65px) */
+            gap: 65px; 
+            flex-wrap: wrap; 
+        }
+
+        .main-nav a {
+            /* Font aumentato (+3pt rispetto a prima) */
+            font-size: 13pt; 
+            letter-spacing: 2px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .site-footer { text-align: center; }
+        .site-footer a { font-size: 9pt; letter-spacing: 2px; }
+
+        /* --- OVERLAYS --- */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.6s ease, visibility 0.6s;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .overlay.is-visible { opacity: 1; visibility: visible; }
+
+        .overlay-content {
+            max-width: 600px;
+            width: 100%;
+            color: white;
+            line-height: 1.6;
+            font-size: 11pt;
+            letter-spacing: 1px;
+            text-align: left;
+        }
+
+        .work-block {
+            display: block;
+            text-decoration: none;
+            color: white;
+            margin-bottom: 30px;
+            border-left: 1px solid rgba(255,255,255,0.2);
+            padding-left: 20px;
+            transition: opacity 0.3s;
+            cursor: pointer;
+        }
+        .work-block:hover { opacity: 0.6; border-left: 1px solid white; }
+        
+        .work-title { 
+            display: block; 
+            font-size: 13pt; 
+            font-weight: bold; 
+            margin-bottom: 5px; 
+            text-transform: uppercase;
+            filter: blur(1px);
+        }
+        .work-details { 
+            display: block; 
+            font-size: 9pt; 
+            color: rgba(255, 255, 255, 0.8); 
+            text-transform: uppercase; 
+            letter-spacing: 1.5px; 
+            line-height: 1.4; 
+        }
+
+        .back-btn {
+            margin-top: 30px;
+            color: white;
+            text-transform: uppercase;
+            font-size: 10pt;
+            letter-spacing: 2px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            filter: blur(1px);
+            padding: 0;
+            display: block;
+        }
+
+        /* --- PROJECT PANELS --- */
+        .project-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 100%;
+            background-color: #000;
+            z-index: 50;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            transform: translateX(-100%);
+            transition: transform 1.2s cubic-bezier(0.86, 0, 0.07, 1);
+            overflow-y: auto;
+        }
+
+        .project-panel.active { transform: translateX(0); }
+
+        .project-info {
+            color: white;
+            text-align: left;
+            opacity: 0;
+            transition: opacity 1s ease 0.5s;
+            margin-top: auto; margin-bottom: auto;
+        }
+        .project-panel.active .project-info { opacity: 1; }
+
+        .p-header {
+            margin-bottom: 30px;
+            border-bottom: 1px solid white;
+            padding-bottom: 20px;
+        }
+
+        .p-title {
+            font-size: 24pt;
+            letter-spacing: 4px;
+            font-weight: 400;
+            text-transform: uppercase;
+            filter: blur(1px);
+            margin-bottom: 10px;
+        }
+
+        .p-meta {
+            font-size: 9pt;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #ccc;
+            line-height: 1.8;
+            filter: blur(1px);
+        }
+
+        .p-body {
+            font-size: 11pt;
+            line-height: 1.8;
+            letter-spacing: 1px;
+            color: #ddd;
+            margin-bottom: 30px;
+            max-width: 95%;
+        }
+
+        .p-back {
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: white;
+            cursor: pointer;
+            text-decoration: none;
+            filter: blur(1px);
+            opacity: 0.7;
+            transition: opacity 0.3s;
+            margin-top: 20px;
+            display: inline-block;
+        }
+        .p-back:hover { opacity: 1; }
+
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            height: 250px; 
+            margin-top: 30px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .carousel-slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; opacity: 0; transition: opacity 1.5s ease-in-out;
+            filter: grayscale(100%);
+        }
+        .carousel-slide.active-slide { opacity: 1; }
+
+
+        /* --- RESPONSIVE MOBILE --- */
+        @media (max-width: 800px) {
+            .main-nav { flex-direction: column; gap: 20px; }
+            .site-wrapper { padding: 30px; }
+
+            /* Video Mobile: Cima, 40%, sempre Cover/Zoomato */
+            .video-container.split-mode { 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                height: 40vh; 
+            }
+            
+            /* Su mobile manteniamo la logica cover+zoom per nascondere il logo */
+            .video-container iframe {
+                transform: translate(-50%, -50%) scale(1.3); /* Zoom maggiore su mobile */
+            }
+
+            .project-panel { 
+                width: 100%; 
+                height: 60vh; 
+                top: 40vh; 
+                left: 0;
+                transform: translateY(100%); 
+                padding: 30px;
+            }
+            .project-panel.active { transform: translateY(0); }
+            
+            .carousel-container { height: 180px; }
+            .p-title { font-size: 18pt; }
+            .project-info { margin-top: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="site-wrapper" id="main-ui">
+        <header class="site-header">
+            <h1>GIULIA CAMBA</h1>
+        </header>
+
+        <nav class="main-nav">
+            <a id="btn-contacts">CONTACTS</a>
+            <a id="btn-works">WORKS</a>
+            <a id="btn-about">ABOUT</a>
+        </nav>
+
+        <footer class="site-footer">
+            <a href="https://instagram.com/giulia.camba.gras" target="_blank">Giulia Camba 2025</a>
+        </footer>
+    </div>
+
+    <div id="overlay-about" class="overlay">
+        <div class="overlay-content">
+            <p><strong>Giulia Camba.</strong> Filmmaker e fotografa, ha conseguito la laurea triennale in arti visive
+                presso lo IED di Milano e proseguito con gli studi in antropologia visiva tramite corsi
+                e workshop alla University of Kent, all’Università di Cagliari e all’Istituto Superiore
+                Regionale Etnografico di Nuoro.</p>
+            <p>La sua ricerca prende forma in un dialogo tra realtà e immaginazione e si focalizza
+                sulle contaminazioni culturali e sulla relazione che intercorre tra identità, luogo e
+                memoria.</p>
+            <p>Ha realizzato lavori cortometraggi documentari e di cinema sperimentale, selezionati
+                in festival nazionali e internazionali.</p>
+            <button class="back-btn close-trigger">Torna al menu</button>
+        </div>
+    </div>
+
+    <div id="overlay-contacts" class="overlay">
+        <div class="overlay-content">
+            <p><strong>GIULIA CAMBA</strong></p>
+            <p>t. +39 3926885518</p>
+            <p><a href="mailto:giulia.camba@gmail.com" style="color:white; text-decoration:none;">giulia.camba@gmail.com</a></p>
+            <p><a href="https://www.instagram.com/giulia.camba.gras/" target="_blank" style="color:white; text-decoration:none;">ig. @giulia.camba.gras</a></p>
+            <button class="back-btn close-trigger">Torna al menu</button>
+        </div>
+    </div>
+
+    <div id="overlay-works" class="overlay">
+        <div class="overlay-content">
+            <div class="work-block" onclick="openProject('panel-ausonia', 'ausonia')">
+                <span class="work-title">AUSONIA</span>
+                <span class="work-details">2019<br>CORTOMETRAGGIO SPERIMENTALE<br>DURATA 9’</span>
+            </div>
+            <div class="work-block" onclick="openProject('panel-erentzia', 'erentzia')">
+                <span class="work-title">ERÉNTZIA</span>
+                <span class="work-details">2023<br>CORTOMETRAGGIO DOCUMENTARIO<br>DURATA 15’</span>
+            </div>
+            <div class="work-block" onclick="openProject('panel-sovrappensiero', 'sovrappensiero')">
+                <span class="work-title">SOVRAPPENSIERO</span>
+                <span class="work-details">2023<br>CORTOMETRAGGIO SPERIMENTALE<br>DURATA 3’</span>
+            </div>
+            <div class="work-block" onclick="openProject('panel-opla', 'opla')">
+                <span class="work-title">OPLA’</span>
+                <span class="work-details">2025<br>CORTOMETRAGGIO DI FINZIONE<br>DURATA 18’</span>
+            </div>
+            <button class="back-btn close-trigger">Torna al menu</button>
+        </div>
+    </div>
+
+    <div id="panel-ausonia" class="project-panel">
+        <div class="project-info">
+            <div class="p-header">
+                <h2 class="p-title">AUSONIA</h2>
+                <div class="p-meta">2019<br>CORTOMETRAGGIO SPERIMENTALE<br>DURATA 9’<br>FULL HD - H.264 - 4:3</div>
+            </div>
+            <div class="p-body">
+                <p>Un luogo dimenticato, una parte della storia di Cagliari di cui non rimangono testimonianze materiali. 
+                I racconti degli sfollati che l'hanno abitata nel dopoguerra si trasformano in suggestioni visive, 
+                prendendo ispirazione dal modo in cui i vuoti di memoria vengono naturalmente colmati dalla fantasia.</p>
+            </div>
+            <div class="carousel-container">
+                <img src="https://via.placeholder.com/600x400/333/fff?text=AUSONIA+1" class="carousel-slide active-slide">
+                <img src="https://via.placeholder.com/600x400/555/fff?text=AUSONIA+2" class="carousel-slide">
+                <img src="https://via.placeholder.com/600x400/777/fff?text=AUSONIA+3" class="carousel-slide">
+            </div>
+            <div class="p-back" onclick="closeProject()">← Torna ai lavori</div>
+        </div>
+    </div>
+
+    <div id="panel-erentzia" class="project-panel">
+        <div class="project-info">
+            <div class="p-header">
+                <h2 class="p-title">ERÉNTZIA</h2>
+                <div class="p-meta">2023<br>CORTOMETRAGGIO DOCUMENTARIO<br>DURATA 15’</div>
+            </div>
+            <div class="p-body">
+                <p>Un vecchio sussurra desideri a una conchiglia e la consegna al mare. Una bambina viaggia tra i paesaggi della Sardegna. La voce di una giovane donna racconta una favola sulla vita e la storia dei sardi attraverso i gesti, gli oggetti e i luoghi.</p>
+            </div>
+            <div class="carousel-container">
+                <img src="https://via.placeholder.com/600x400/222/fff?text=ERENTZIA+1" class="carousel-slide active-slide">
+                <img src="https://via.placeholder.com/600x400/444/fff?text=ERENTZIA+2" class="carousel-slide">
+                <img src="https://via.placeholder.com/600x400/666/fff?text=ERENTZIA+3" class="carousel-slide">
+            </div>
+            <div class="p-back" onclick="closeProject()">← Torna ai lavori</div>
+        </div>
+    </div>
+
+    <div id="panel-sovrappensiero" class="project-panel">
+        <div class="project-info">
+            <div class="p-header">
+                <h2 class="p-title">SOVRAPPENSIERO</h2>
+                <div class="p-meta">2023<br>CORTOMETRAGGIO SPERIMENTALE<br>DURATA 3’</div>
+            </div>
+            <div class="p-body">
+                <p>Il lavoro racconta uno stato d'animo, uno di quei momenti in cui il nostro cervello ci porta a vedere le cose in maniera diversa dal normale; una sensazione di estraniamento, bellezza e libertà di pensiero. Le immagini girate da me, nei miei archivi del cellulare, insieme alle immagini degli archivi pubblici di estranei, prese dai social, dialogano e giocano costruendo una storia attraverso associazioni di senso e di istinto.</p>
+            </div>
+            <div class="carousel-container">
+                <img src="https://via.placeholder.com/600x400/111/fff?text=SOVRAP+1" class="carousel-slide active-slide">
+                <img src="https://via.placeholder.com/600x400/333/fff?text=SOVRAP+2" class="carousel-slide">
+                <img src="https://via.placeholder.com/600x400/555/fff?text=SOVRAP+3" class="carousel-slide">
+            </div>
+            <div class="p-back" onclick="closeProject()">← Torna ai lavori</div>
+        </div>
+    </div>
+
+    <div id="panel-opla" class="project-panel">
+        <div class="project-info">
+            <div class="p-header">
+                <h2 class="p-title">OPLA’</h2>
+                <div class="p-meta">2025<br>CORTOMETRAGGIO DI FINZIONE<br>DURATA 18’</div>
+            </div>
+            <div class="p-body">
+                <p>Nina si sveglia inquieta nel cuore della notte, vaga per la casa e calpesta accidentalmente un ragno. Il padre le dice che la sua morte porterà sfortuna. Il giorno dopo Nina va in gita al mare con la madre e altri bambini. Tra le dune della spiaggia realizzerà ciò che la turba.</p>
+            </div>
+            <div class="carousel-container">
+                <img src="https://via.placeholder.com/600x400/000/fff?text=OPLA+1" class="carousel-slide active-slide">
+                <img src="https://via.placeholder.com/600x400/222/fff?text=OPLA+2" class="carousel-slide">
+                <img src="https://via.placeholder.com/600x400/444/fff?text=OPLA+3" class="carousel-slide">
+            </div>
+            <div class="p-back" onclick="closeProject()">← Torna ai lavori</div>
+        </div>
+    </div>
+
+    <div class="video-container" id="bg-video">
+        <div id="player"></div>
+    </div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        var player;
+        
+        // --- CONFIGURAZIONE VIDEO ---
+        const VIDEO_IDS = {
+            'home': 'g5AdCwrXKjA',          
+            'ausonia': 'qrzuD2Wvwdk',       
+            'erentzia': 'n75TuWVW6xU',      
+            'sovrappensiero': 'mjTnbJZB5Tw', 
+            'opla': 'mjTnbJZB5Tw'           
+        };
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                videoId: VIDEO_IDS['home'],
+                playerVars: {
+                    'autoplay': 1, 'controls': 0, 'rel': 0, 
+                    'showinfo': 0, 'mute': 1, 'modestbranding': 1,
+                    'iv_load_policy': 3
+                },
+                events: { 
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange 
+                }
+            });
+        }
+
+        function onPlayerReady(event) { event.target.playVideo(); }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED) {
+                player.playVideo(); 
+            }
+            if (event.data === YT.PlayerState.PLAYING) {
+                document.getElementById('bg-video').classList.remove('is-loading');
+            }
+        }
+
+        const mainUI = document.getElementById('main-ui');
+        const overlays = document.querySelectorAll('.overlay');
+        const overlayWorks = document.getElementById('overlay-works');
+        const bgVideo = document.getElementById('bg-video');
+        const projectPanels = document.querySelectorAll('.project-panel');
+
+        function hideOverlays() { overlays.forEach(ov => ov.classList.remove('is-visible')); }
+        function hidePanels() { projectPanels.forEach(p => p.classList.remove('active')); }
+
+        // Gestione Menu
+        document.getElementById('btn-about').onclick = () => { mainUI.classList.add('is-hidden'); document.getElementById('overlay-about').classList.add('is-visible'); };
+        document.getElementById('btn-contacts').onclick = () => { mainUI.classList.add('is-hidden'); document.getElementById('overlay-contacts').classList.add('is-visible'); };
+        document.getElementById('btn-works').onclick = (e) => { e.preventDefault(); mainUI.classList.add('is-hidden'); overlayWorks.classList.add('is-visible'); };
+
+        document.querySelectorAll('.close-trigger').forEach(btn => {
+            btn.onclick = () => { hideOverlays(); mainUI.classList.remove('is-hidden'); };
+        });
+
+        // Cambio Video Morbido
+        function switchVideo(newVideoKey) {
+            const container = document.getElementById('bg-video');
+            const newId = VIDEO_IDS[newVideoKey];
+            container.classList.add('is-loading'); 
+            setTimeout(() => {
+                if(player && player.loadVideoById) {
+                    player.loadVideoById(newId);
+                    player.mute();
+                }
+            }, 600);
+        }
+
+        // Apertura Progetto
+        function openProject(panelId, videoKey) {
+            hideOverlays(); 
+            switchVideo(videoKey);
+            bgVideo.classList.add('split-mode');
+            document.getElementById(panelId).classList.add('active');
+        }
+
+        // Chiusura Progetto
+        function closeProject() {
+            switchVideo('home');
+            bgVideo.classList.remove('split-mode');
+            hidePanels();
+            setTimeout(() => {
+                overlayWorks.classList.add('is-visible');
+            }, 800);
+        }
+
+        // Carosello
+        function runCarousel() {
+            const containers = document.querySelectorAll('.carousel-container');
+            containers.forEach(container => {
+                const slides = container.querySelectorAll('.carousel-slide');
+                if (slides.length > 0) {
+                    let activeIndex = 0;
+                    slides.forEach((slide, index) => {
+                        if (slide.classList.contains('active-slide')) activeIndex = index;
+                        slide.classList.remove('active-slide'); 
+                    });
+                    let nextIndex = (activeIndex + 1) % slides.length;
+                    slides[nextIndex].classList.add('active-slide');
+                }
+            });
+        }
+        setInterval(runCarousel, 3000);
+
+    </script>
+</body>
+</html>
